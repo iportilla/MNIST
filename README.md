@@ -1,2 +1,3 @@
-# MINST
-Computer Vision
+## MNIST Digit Classification Lab — Traditional Deep Learning
+
+In this lab, students build a classic deep learning model that recognizes handwritten digits (0–9) using the MNIST dataset. The activity introduces the full workflow for image classification: loading and visualizing data, preprocessing images, designing a simple neural network (MLP or CNN), training the model, evaluating accuracy, and interpreting predictions. MNIST provides a clean, well-structured dataset, allowing students to focus on core concepts such as activation functions, loss optimization, overfitting, and test accuracy—skills foundational to all computer vision tasks.
