@@ -37,3 +37,29 @@ No cloud. No external API calls. Maximum privacy and zero cost.
 ```bash
 conda create -n sd python=3.10
 conda activate sd
+```
+
+## Install python dependencies
+
+```
+pip install diffusers transformers accelerate scipy safetensors
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install streamlit
+pip install invisible-watermark   # optional
+```
+
+## Download a Stable Diffusion model
+
+```
+huggingface-cli download runwayml/stable-diffusion-v1-5 --local-dir ./sd15
+```
+
+## Running the App
+
+In the project folder
+
+```
+streamlit run sd_local_app.py
+```
+
+
