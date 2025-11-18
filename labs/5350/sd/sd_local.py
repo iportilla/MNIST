@@ -13,8 +13,8 @@ from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline
 # -------------------------------------------------------------------
 # CONFIG: where your models live
 # -------------------------------------------------------------------
-SD15_PATH = "./sd15"   # runwayml/stable-diffusion-v1-5 downloaded here
-SDXL_PATH = "./sdxl"   # stabilityai/stable-diffusion-xl-base-1.0 downloaded here
+SD15_PATH = "./sd15"
+SDXL_PATH = "./sdxl"
 
 
 # -------------------------------------------------------------------
@@ -38,44 +38,48 @@ DEVICE = get_device()
 @st.cache_resource
 def load_model(model_name: str):
     """
-    Load SD 1.5 or SDXL into memory with safe defaults for Apple Silicon.
+    Load SD1.5 (fp32 on MPS) or SDXL (fp16) with memory-optimized configs.
     """
+
     device = DEVICE
 
+    # Stable Diffusion 1.5 (must use fp32 on MPS → fp16 = black images)
     if model_name == "Stable Diffusion 1.5":
         if not os.path.isdir(SD15_PATH):
             raise FileNotFoundError(
-                f"Model folder '{SD15_PATH}' not found. "
-                f"Download runwayml/stable-diffusion-v1-5 there."
+                f"Model directory '{SD15_PATH}' not found.\n"
+                f"Download SD1.5 using:\n"
+                f"huggingface-cli download runwayml/stable-diffusion-v1-5 "
+                f"--local-dir sd15 --local-dir-use-symlinks False"
             )
-
         pipe = StableDiffusionPipeline.from_pretrained(
             SD15_PATH,
-            torch_dtype=torch.float16 if device != "cpu" else torch.float32,
+            torch_dtype=torch.float32,  # FIX FOR BLACK IMAGES
         )
 
-    else:  # SDXL
+    # Stable Diffusion XL (fp16 fine)
+    else:
         if not os.path.isdir(SDXL_PATH):
             raise FileNotFoundError(
-                f"Model folder '{SDXL_PATH}' not found. "
-                f"Download stabilityai/stable-diffusion-xl-base-1.0 there."
+                f"Model directory '{SDXL_PATH}' not found.\n"
+                f"Download SDXL using:\n"
+                f"huggingface-cli download stabilityai/stable-diffusion-xl-base-1.0 "
+                f"--local-dir sdxl --local-dir-use-symlinks False"
             )
-
         pipe = StableDiffusionXLPipeline.from_pretrained(
             SDXL_PATH,
-            torch_dtype=torch.float16 if device != "cpu" else torch.float32,
+            torch_dtype=torch.float16,
         )
 
     pipe.to(device)
 
-    # Memory-saving configs (especially for MPS / SDXL)
+    # Memory optimizations (especially for MPS/smaller VRAM)
     pipe.enable_attention_slicing()
     pipe.enable_vae_tiling()
     try:
         pipe.enable_sequential_cpu_offload()
     except Exception:
-        # Not all configs support this; safe to ignore
-        pass
+        pass  # Some pipelines don't support it
 
     return pipe
 
@@ -101,42 +105,38 @@ def make_generator(seed: int, device: str):
 # STREAMLIT UI
 # -------------------------------------------------------------------
 def main():
-    st.set_page_config(page_title="Local Stable Diffusion", layout="centered")
-    st.title("🎨 Local Stable Diffusion Image Generator")
+    st.set_page_config(page_title="Local Stable Diffusion", layout="wide")
+    st.title("🎨 Local Stable Diffusion (Offline Image Generator)")
 
-    st.markdown(
-        "Generate images **completely offline** using Stable Diffusion running on your Mac."
-    )
+    st.caption(f"Device detected: **{DEVICE.upper()}**")
 
-    st.caption(f"Detected device: **{DEVICE.upper()}**")
-
-    # Sidebar
+    # Sidebar Settings
     with st.sidebar:
-        st.header("Model & Settings")
+        st.header("Model Settings")
 
         model_name = st.selectbox(
-            "Model",
+            "Choose Model",
             ["Stable Diffusion 1.5", "Stable Diffusion XL"],
+            index=0,
         )
 
-        steps = st.slider("Inference steps", 10, 60, 30)
-        guidance = st.slider("Guidance scale", 1.0, 15.0, 7.5)
+        steps = st.slider("Inference Steps", 10, 60, 30)
+        guidance = st.slider("Guidance Scale", 1.0, 15.0, 7.5)
 
+        # SD1.5 defaults to 512×512, SDXL to 768×768
         if model_name == "Stable Diffusion 1.5":
             default_w, default_h = 512, 512
             max_res = 768
         else:
             default_w, default_h = 768, 768
-            max_res = 896
+            max_res = 1024
 
         width = st.slider("Width", 384, max_res, default_w, step=64)
         height = st.slider("Height", 384, max_res, default_h, step=64)
 
-        seed = st.number_input(
-            "Seed (negative for random)", value=-1, step=1
-        )
+        seed = st.number_input("Seed (negative = random)", value=-1, step=1)
 
-    # Main prompt area
+    # Prompt input
     prompt = st.text_area(
         "Prompt",
         "A friendly robot painting in a bright art studio, ultra detailed, digital art",
@@ -144,44 +144,45 @@ def main():
     )
 
     negative_prompt = st.text_area(
-        "Negative prompt",
-        "low quality, blurry, distorted, deformed, watermark, text",
+        "Negative Prompt",
+        "low quality, blurry, distorted, watermark, text",
         height=60,
     )
 
-    generate_button = st.button("🚀 Generate Image")
+    run_button = st.button("🚀 Generate Image")
 
-    if generate_button:
+    if run_button:
         if not prompt.strip():
-            st.warning("Please enter a prompt.")
+            st.warning("Please enter a prompt first.")
             return
 
         try:
-            with st.spinner("Loading model (first time may take a bit)…"):
+            with st.spinner("Loading model…"):
                 pipe = load_model(model_name)
 
-            generator, actual_seed = make_generator(seed, DEVICE)
-
-            st.info(f"Using seed: **{actual_seed}**")
+            generator, final_seed = make_generator(seed, DEVICE)
+            st.info(f"Using seed: **{final_seed}**")
 
             start_time = time.time()
+
             with st.spinner("Generating image…"):
-                result = pipe(
+                output = pipe(
                     prompt=prompt,
-                    negative_prompt=negative_prompt if negative_prompt.strip() else None,
+                    negative_prompt=negative_prompt or None,
                     num_inference_steps=steps,
                     guidance_scale=guidance,
                     width=width,
                     height=height,
                     generator=generator,
                 )
-                image = result.images[0]
+                image = output.images[0]
+
             end_time = time.time()
 
             st.subheader("🖼️ Generated Image")
-            st.image(image, use_container_width=True)
+            st.image(image, width="stretch")
 
-            st.caption(f"Generation time: {end_time - start_time:.1f} seconds")
+            st.caption(f"Generation time: {end_time - start_time:.2f} seconds")
 
             st.download_button(
                 "💾 Download PNG",
@@ -190,34 +191,25 @@ def main():
                 mime="image/png",
             )
 
-        except FileNotFoundError as e:
-            st.error(str(e))
-            st.info(
-                "Make sure you ran:\n\n"
-                "```bash\n"
-                "huggingface-cli download runwayml/stable-diffusion-v1-5 "
-                "--local-dir sd15 --local-dir-use-symlinks False\n\n"
-                "huggingface-cli download stabilityai/stable-diffusion-xl-base-1.0 "
-                "--local-dir sdxl --local-dir-use-symlinks False\n"
-                "```"
-            )
         except RuntimeError as e:
-            # Typical MPS OOM message
-            if "MPS backend out of memory" in str(e):
-                st.error("⚠️ MPS out of memory.")
+            if "out of memory" in str(e):
+                st.error("⚠️ MPS ran out of memory.")
                 st.write(
-                    "Try:\n"
-                    "- Lowering width/height\n"
-                    "- Reducing inference steps\n"
-                    "- Using **Stable Diffusion 1.5** instead of SDXL\n"
-                    "- Closing other GPU-hungry apps"
+                    "- Lower image resolution\n"
+                    "- Reduce inference steps\n"
+                    "- Close other GPU-heavy apps\n"
+                    "- Use SD 1.5 instead of SDXL"
                 )
             else:
                 st.error(f"Runtime error: {e}")
+
+        except FileNotFoundError as e:
+            st.error(str(e))
+
         except Exception as e:
             st.error(f"Unexpected error: {e}")
 
-        # Try to free some MPS memory between runs
+        # Free VRAM (important for MPS)
         if DEVICE == "mps":
             try:
                 torch.mps.empty_cache()
