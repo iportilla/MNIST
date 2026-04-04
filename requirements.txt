@@ -1,0 +1,33 @@
+# ── Core: Labs 0, 1, 4, 5 and code/ notebooks ───────────────────────────────
+# Python 3.10 or 3.11 recommended.
+# Python 3.12 (Anaconda): use tensorflow>=2.16 + keras>=3.0 (standalone).
+tensorflow>=2.16              # Keras 3 backend; 2.16+ supports Python 3.12
+keras>=3.0                    # Standalone Keras 3 — avoids protobuf conflicts
+                              # (use `import keras` not `from tensorflow import keras`)
+protobuf>=4.21,<6.0           # Pin to avoid 'runtime_version' ImportError on older TF builds
+numpy>=1.24
+matplotlib>=3.7
+scikit-learn>=1.3
+requests>=2.31
+jupyter>=1.0                  # Run .ipynb notebooks locally
+ipykernel>=6.25               # Jupyter kernel for VS Code / JupyterLab
+
+# ── Lab 4 & 5350: Ollama / multimodal ───────────────────────────────────────
+ollama>=0.2                   # Python client for local Ollama server
+httpx>=0.27                   # Async HTTP (used by st_ollama.py)
+
+# ── 5350 Streamlit apps ──────────────────────────────────────────────────────
+streamlit>=1.35
+opencv-python>=4.9            # cv2 — image loading/resizing
+pillow>=10.0                  # PIL — image handling
+
+# ── 5350/sd: Stable Diffusion (optional, GPU recommended) ───────────────────
+# Uncomment the lines below only if you plan to run sd/sd_local.py
+# torch>=2.2
+# diffusers>=0.27
+# transformers>=4.40
+# accelerate>=0.29
+
+# ── 5350: Object detection (optional) ───────────────────────────────────────
+# Uncomment if you plan to run YOLO-based demos
+# ultralytics>=8.2
