@@ -16,10 +16,14 @@ ipykernel>=6.25               # Jupyter kernel for VS Code / JupyterLab
 ollama>=0.2                   # Python client for local Ollama server
 httpx>=0.27                   # Async HTTP (used by st_ollama.py)
 
-# ── 5350 Streamlit apps ──────────────────────────────────────────────────────
+# ── Streamlit apps (5350 + demo lab) ────────────────────────────────────────
 streamlit>=1.35
 opencv-python>=4.9            # cv2 — image loading/resizing
-pillow>=10.0                  # PIL — image handling
+pillow>=10.0                  # PIL — image handling / bounding-box drawing
+
+# ── Demo lab: Azure AI Vision Face API ───────────────────────────────────────
+azure-ai-vision-face>=1.0.0b2 # Azure Face Detection SDK
+python-dotenv>=1.0            # Load .env credentials
 
 # ── 5350/sd: Stable Diffusion (optional, GPU recommended) ───────────────────
 # Uncomment the lines below only if you plan to run sd/sd_local.py
