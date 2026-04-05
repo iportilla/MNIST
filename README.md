@@ -131,13 +131,20 @@ MNIST-main/
 │   ├── lab-5/                   # Lab 5 — Object detection demo
 │   │   └── max-object-demo.ipynb
 │   │
-│   └── 5350/                    # Advanced — Streamlit + Ollama apps
-│       ├── mnist_collab.ipynb   #   Collaborative MNIST notebook
-│       ├── st_detect.py         #   Streamlit image detection app
-│       ├── st_image.py          #   Streamlit image display app
-│       ├── st_ollama.py         #   Streamlit + Ollama vision model app
-│       └── sd/
-│           └── sd_local.py      #   Stable Diffusion local demo
+    ├── 5350/                    # Advanced — Streamlit + Ollama apps
+│   │   ├── mnist_collab.ipynb   #   Collaborative MNIST notebook
+│   │   ├── st_detect.py         #   Streamlit image detection app
+│   │   ├── st_image.py          #   Streamlit image display app
+│   │   ├── st_ollama.py         #   Streamlit + Ollama vision model app
+│   │   └── sd/
+│   │       └── sd_local.py      #   Stable Diffusion local demo
+│   │
+│   └── demo/                    # Demo — Azure AI Vision Face Detection
+│       ├── app.py               #   Streamlit web UI
+│       ├── sample_face_detection.py  #  CLI script
+│       ├── tomc1.jpeg           #   Sample image
+│       ├── .env                 #   API credentials (not committed)
+│       └── README.md
 │
 ├── images/                      # Supporting images / assets
 ├── samples/                     # Additional sample code
@@ -154,6 +161,7 @@ flowchart LR
     L0["Lab 0: Keras Intro - Loss, Epoch, Validation, Confusion Matrix, AUC"] --> L1["Lab 1: MNIST Classification - MLP in Keras"] --> L4["Lab 4: Multimodal Chat - Ollama Vision Models"]
     L4 --> L5["Lab 5: Object Detection - Max-object demo"]
     L5 --> L6["5350: Streamlit Apps - Real-time inference"]
+    L6 --> LD["Demo: Azure Face Detection - Streamlit + Face API"]
 ```
 
 | Lab | Topic | Key Skills |
@@ -163,6 +171,52 @@ flowchart LR
 | **Lab 4** | Multimodal image chat | Ollama, vision LLMs, prompt engineering |
 | **Lab 5** | Object detection | Model inference, bounding boxes |
 | **5350** | Streamlit web apps | Deployment, OpenCV, Ollama API, async |
+| **Demo** | Azure AI Vision Face Detection | Azure Face API, Streamlit UI, PIL bounding boxes |
+
+---
+
+## Demo Lab — Azure AI Vision Face Detection
+
+**Folder:** `labs/demo/`
+
+Detects and analyses faces in images using the **Azure AI Vision Face API**. Provides both a CLI script and an interactive **Streamlit** web UI that draws bounding boxes and displays attributes such as blur, head pose, mask detection, and quality score.
+
+```mermaid
+graph TD
+    U[User] -->|Upload image or URL| S[Streamlit UI\napp.py]
+    U -->|Run script| C[CLI\nsample_face_detection.py]
+    S -->|Image bytes / URL| F[Azure AI\nFace API]
+    C -->|Image bytes / URL| F
+    F -->|Rectangles + Attributes + Landmarks| S
+    F -->|JSON output| C
+    S -->|Annotated image + cards| U
+```
+
+**Prerequisites:**
+
+1. An [Azure AI Services](https://portal.azure.com) resource with the Face API enabled.
+2. Add credentials to `labs/demo/.env`:
+   ```
+   AZURE_FACE_API_ENDPOINT=https://<your-resource>.cognitiveservices.azure.com/
+   AZURE_FACE_API_ACCOUNT_KEY=<your-key>
+   ```
+
+**Run the Streamlit UI:**
+
+```bash
+cd labs/demo
+streamlit run app.py
+# → http://localhost:8501
+```
+
+**Run the CLI script:**
+
+```bash
+cd labs/demo
+python sample_face_detection.py
+```
+
+See `labs/demo/README.md` for full details, attribute reference, and architecture diagrams.
 
 ---
 
