@@ -8,6 +8,7 @@ graph LR
     L1 --> L4[Lab 4\nLocal LLMs\nOllama vision]
     L1 --> L5[Lab 5\nObject detection\nMAX API]
     L1 --> L53[Lab 5350\nStreamlit apps\nYOLO SD vision LLMs]
+    L53 --> LD[Demo\nAzure Face Detection\nStreamlit + Face API]
 ```
 
 ---
@@ -137,4 +138,35 @@ pip install -r requirements.txt
 jupyter notebook labs/lab-0/intro-keras.ipynb
 ```
 
-**Recommended order for new students:** Lab 0 → Lab 1 → Lab 4 → Lab 5 → Lab 5350
+**Recommended order for new students:** Lab 0 → Lab 1 → Lab 4 → Lab 5 → Lab 5350 → Demo
+
+---
+
+## Demo Lab — Azure AI Vision Face Detection
+
+**Folder:** `demo/`  
+**Files:** `sample_face_detection.py`, `app.py`
+
+Detects and analyses faces in images using the **Azure AI Vision Face API**. Two interfaces are provided: a command-line script and an interactive **Streamlit** web UI with live bounding-box visualisation.
+
+| File | Description |
+|------|-------------|
+| `sample_face_detection.py` | CLI — detect from local file + URL, logs JSON results |
+| `app.py` | Streamlit UI — upload image or enter URL, view annotated results |
+
+**Prerequisites:**
+
+- An Azure AI Services resource with Face API enabled
+- Credentials in `demo/.env` (`AZURE_FACE_API_ENDPOINT`, `AZURE_FACE_API_ACCOUNT_KEY`)
+
+**Run:**
+
+```bash
+# Streamlit UI
+streamlit run demo/app.py
+
+# CLI script
+python demo/sample_face_detection.py
+```
+
+See `demo/README.md` for full setup, attribute reference, and architecture diagrams.
