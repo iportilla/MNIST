@@ -1,4 +1,9 @@
 import os
+
+# Keep transformers from loading TensorFlow. With TF + torch in the same env,
+# importing the CLIP text encoder can segfault (pyarrow native load) on macOS.
+os.environ.setdefault("USE_TF", "0")
+
 import time
 import io
 import random
@@ -48,9 +53,9 @@ def load_model(model_name: str):
         if not os.path.isdir(SD15_PATH):
             raise FileNotFoundError(
                 f"Model directory '{SD15_PATH}' not found.\n"
-                f"Download SD1.5 using:\n"
-                f"huggingface-cli download runwayml/stable-diffusion-v1-5 "
-                f"--local-dir sd15 --local-dir-use-symlinks False"
+                f"Run this app from the sd/ folder, or download SD1.5 using the\n"
+                f"'hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir sd15 ...'\n"
+                f"command in README.md (use its --include filters to avoid a 40 GB download)."
             )
         pipe = StableDiffusionPipeline.from_pretrained(
             SD15_PATH,
@@ -62,14 +67,20 @@ def load_model(model_name: str):
         if not os.path.isdir(SDXL_PATH):
             raise FileNotFoundError(
                 f"Model directory '{SDXL_PATH}' not found.\n"
-                f"Download SDXL using:\n"
-                f"huggingface-cli download stabilityai/stable-diffusion-xl-base-1.0 "
-                f"--local-dir sdxl --local-dir-use-symlinks False"
+                f"Run this app from the sd/ folder, or download SDXL using the\n"
+                f"'hf download stabilityai/stable-diffusion-xl-base-1.0 --local-dir sdxl ...'\n"
+                f"command in README.md."
             )
-        pipe = StableDiffusionXLPipeline.from_pretrained(
-            SDXL_PATH,
-            torch_dtype=torch.float16,
-        )
+        try:
+            # README downloads only the *.fp16.safetensors files
+            pipe = StableDiffusionXLPipeline.from_pretrained(
+                SDXL_PATH, torch_dtype=torch.float16, variant="fp16"
+            )
+        except (OSError, ValueError):
+            # full download without the fp16 variant files
+            pipe = StableDiffusionXLPipeline.from_pretrained(
+                SDXL_PATH, torch_dtype=torch.float16
+            )
 
     pipe.to(device)
 

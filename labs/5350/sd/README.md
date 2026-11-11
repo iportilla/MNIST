@@ -4,9 +4,11 @@ This lab runs a fully offline AI image generator on your own machine using **Sta
 No cloud, no API key, no cost — everything stays on your laptop.
 
 Supported hardware:
-- **Apple Silicon (M1/M2/M3/M4)** — uses Metal (MPS) GPU acceleration
-- **NVIDIA GPU** — uses CUDA
-- **CPU only** — works but is slow (minutes per image instead of seconds)
+- **Apple Silicon Mac (M1/M2/M3/M4)**: uses Metal (MPS) GPU acceleration
+- **Windows or Linux with an NVIDIA GPU**: uses CUDA. Needs about 4 GB of VRAM for SD 1.5 and 8 GB for SDXL.
+- **CPU only** (any Windows laptop, Intel Mac): works, but slowly. Expect minutes per image instead of seconds. Use SD 1.5 only.
+
+**Quick links:** [macOS / Linux setup](#setup--macos--linux) · [Windows setup](#setup--windows) · [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -82,88 +84,185 @@ sd/
 └── README.md
 ```
 
-The model folders (`sd15/`, `sdxl/`) are **not included** in the repo — they are several gigabytes each. You download them once with the Hugging Face CLI (see below).
+The model folders (`sd15/`, `sdxl/`) are **not included** in the repo, because they're several gigabytes each. You download them once with the Hugging Face CLI. Run every command below from inside this `sd/` folder, because the app looks for `./sd15` and `./sdxl` relative to where you start it.
+
+**Disk space:** about 6 GB for SD 1.5, plus 7 GB more for SDXL.
+
+> **Download only the files the app needs.** The SD 1.5 repo on Hugging Face is over 40 GB, because it also holds several old single-file checkpoints. The `--include` filters below limit the download to about 5.5 GB.
+
+> **The old `runwayml/stable-diffusion-v1-5` repo no longer exists.** Use `stable-diffusion-v1-5/stable-diffusion-v1-5`. Neither model below needs a Hugging Face login.
 
 ---
 
-## Installation
+## Setup — macOS / Linux
 
-### Step 1 — Create a virtual environment
-
-```bash
-# Using venv (recommended)
-python3 -m venv sd
-source sd/bin/activate       # macOS / Linux
-sd\Scripts\Activate.ps1      # Windows
-```
-
-Or with conda:
+### 1. Create a virtual environment
 
 ```bash
-conda create -n sd python=3.10
-conda activate sd
+cd labs/5350/sd
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-### Step 2 — Install dependencies
+Or with conda: `conda create -n sd python=3.11 -y && conda activate sd`
+
+### 2. Install dependencies
 
 ```bash
-pip install diffusers transformers accelerate scipy safetensors
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install streamlit
-pip install invisible-watermark   # optional, suppresses a warning
+pip install --upgrade pip
+pip install torch
+pip install "diffusers>=0.30,<0.36" "transformers>=4.42,<5" "huggingface_hub>=0.23,<1" accelerate safetensors scipy streamlit
 ```
 
-> On macOS, the CPU PyTorch wheel automatically enables Metal (MPS) — no separate install needed.
+> On Apple Silicon, the standard `pip install torch` already includes Metal (MPS) support, so you don't need a special build.
+> On Linux with an NVIDIA GPU, use the CUDA command from the Windows section's step 3 instead.
 
----
-
-## Download Models
-
-You need a free Hugging Face account. Log in once:
+### 3. Download the models
 
 ```bash
-huggingface-cli login
+hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir sd15 \
+  --include "model_index.json" "scheduler/*" "tokenizer/*" "feature_extractor/*" \
+  "text_encoder/config.json" "text_encoder/model.safetensors" \
+  "unet/config.json" "unet/diffusion_pytorch_model.safetensors" \
+  "vae/config.json" "vae/diffusion_pytorch_model.safetensors" \
+  "safety_checker/config.json" "safety_checker/model.safetensors"
 ```
 
-### Stable Diffusion 1.5
+Optional, SDXL (about 7 GB, half-precision weights):
 
 ```bash
-huggingface-cli download runwayml/stable-diffusion-v1-5 \
-    --local-dir sd15 --local-dir-use-symlinks False
+hf download stabilityai/stable-diffusion-xl-base-1.0 --local-dir sdxl \
+  --include "model_index.json" "scheduler/*" "tokenizer/*" "tokenizer_2/*" \
+  "text_encoder/config.json" "text_encoder/model.fp16.safetensors" \
+  "text_encoder_2/config.json" "text_encoder_2/model.fp16.safetensors" \
+  "unet/config.json" "unet/diffusion_pytorch_model.fp16.safetensors" \
+  "vae/config.json" "vae/diffusion_pytorch_model.fp16.safetensors"
 ```
 
-### Stable Diffusion XL
+> If you have an older install where `hf` isn't found, use `huggingface-cli download` with the same arguments.
 
-```bash
-huggingface-cli download stabilityai/stable-diffusion-xl-base-1.0 \
-    --local-dir sdxl --local-dir-use-symlinks False
-```
-
-### Token-free alternatives (no login needed)
-
-```bash
-# SD1.5 replacement
-huggingface-cli download dreamlike-art/dreamlike-photoreal-2.0 \
-    --local-dir sd15 --local-dir-use-symlinks False
-
-# SDXL replacement
-huggingface-cli download SG161222/RealVisXL_V4.0 \
-    --local-dir sdxl --local-dir-use-symlinks False
-```
-
----
-
-## Running the App
+### 4. Run the app
 
 ```bash
 streamlit run sd_local.py
 ```
 
-A browser tab opens at `http://localhost:8501`. Fill in a prompt and click **Generate**.
+A browser tab opens at `http://localhost:8501`. Type a prompt and click **Generate**.
 
 ---
 
-## Memory Optimizations (Apple Silicon)
+## Setup — Windows
+
+These steps use **PowerShell**. Open it from the Start menu, then `cd` to this folder.
+
+### 1. Install Python
+
+- Install **Python 3.11** (3.10–3.12 all work) from [python.org](https://www.python.org/downloads/windows/). **Don't use the Microsoft Store version**, because its sandboxed paths break large package installs.
+- On the first installer screen, check **"Add python.exe to PATH"**.
+- Check it worked:
+
+```powershell
+py -3.11 --version
+```
+
+### 2. Create and activate a virtual environment
+
+```powershell
+cd labs\5350\sd
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell says *"running scripts is disabled on this system"*, allow scripts for your user account only, then activate again:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+.\.venv\Scripts\Activate.ps1
+```
+
+Your prompt should now start with `(.venv)`.
+
+### 3. Install PyTorch
+
+On Windows, the standard `pip install torch` gives you a **CPU-only** build, even if you have an NVIDIA GPU. Choose the command for your machine.
+
+**NVIDIA GPU:** first check that the driver is working:
+
+```powershell
+nvidia-smi
+```
+
+If that prints a table showing your GPU, install the CUDA build:
+
+```powershell
+python -m pip install --upgrade pip
+pip install torch --index-url https://download.pytorch.org/whl/cu126
+```
+
+**No NVIDIA GPU** (Intel/AMD graphics, most thin laptops):
+
+```powershell
+python -m pip install --upgrade pip
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+```
+
+Check which device PyTorch sees:
+
+```powershell
+python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+```
+
+`True` means GPU. `False` means CPU: the app still works, but use SD 1.5 at 512×512 with about 20 steps.
+
+### 4. Install the other packages
+
+```powershell
+pip install "diffusers>=0.30,<0.36" "transformers>=4.42,<5" "huggingface_hub>=0.23,<1" accelerate safetensors scipy streamlit
+```
+
+### 5. Download the models
+
+PowerShell doesn't accept `\` to continue a line, so these use a backtick (`` ` ``) at the end of each line instead. Keep the backtick as the **last** character on the line, with no space after it.
+
+```powershell
+hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir sd15 `
+  --include "model_index.json" "scheduler/*" "tokenizer/*" "feature_extractor/*" `
+  "text_encoder/config.json" "text_encoder/model.safetensors" `
+  "unet/config.json" "unet/diffusion_pytorch_model.safetensors" `
+  "vae/config.json" "vae/diffusion_pytorch_model.safetensors" `
+  "safety_checker/config.json" "safety_checker/model.safetensors"
+```
+
+Optional, SDXL (NVIDIA GPU with 8 GB+ VRAM only, too slow on CPU):
+
+```powershell
+hf download stabilityai/stable-diffusion-xl-base-1.0 --local-dir sdxl `
+  --include "model_index.json" "scheduler/*" "tokenizer/*" "tokenizer_2/*" `
+  "text_encoder/config.json" "text_encoder/model.fp16.safetensors" `
+  "text_encoder_2/config.json" "text_encoder_2/model.fp16.safetensors" `
+  "unet/config.json" "unet/diffusion_pytorch_model.fp16.safetensors" `
+  "vae/config.json" "vae/diffusion_pytorch_model.fp16.safetensors"
+```
+
+> Using **Command Prompt (cmd.exe)** instead of PowerShell? Put the whole command on one line, or end each line with `^` instead of a backtick.
+
+### 6. Run the app
+
+```powershell
+streamlit run sd_local.py
+```
+
+A browser tab opens at `http://localhost:8501`. The first image takes longer, because the model loads into memory.
+
+### Windows tips
+
+- **Keep the project in a short path** such as `C:\labs\MNIST`. Deep folders inside OneDrive (`C:\Users\<you>\OneDrive\Documents\...`) can hit Windows' 260-character path limit, and OneDrive tries to sync the multi-GB model files.
+- **Next time**, you only need to `cd` to the folder, run `.\.venv\Scripts\Activate.ps1`, then run `streamlit run sd_local.py`.
+- When Windows Defender Firewall asks about Python, you can click **Cancel**. The app only needs `localhost`.
+
+---
+
+## Memory Optimizations
 
 Large models can exceed available GPU memory. The app automatically enables three techniques:
 
@@ -217,12 +316,46 @@ Only affects SD1.5 on Apple Silicon. The app already forces `float32` to fix thi
 Lower the resolution or step count first. If the error persists, restart the app — MPS memory is not always released between runs. The app calls `torch.mps.empty_cache()` automatically, but a full restart is sometimes needed.
 
 **`FileNotFoundError` for model directory**  
-The model was not downloaded or was saved to a different folder. Re-run the `huggingface-cli download` command with the exact `--local-dir` path shown above.
+Either the model wasn't downloaded, or you started Streamlit from a different folder. `cd` into `sd/` (the folder containing `sd15/`) and run `streamlit run sd_local.py` again.
+
+**`ModuleNotFoundError: No module named 'diffusers'`**  
+Your virtual environment isn't active, or Streamlit is running from a different Python. Activate the venv, then run `python -m streamlit run sd_local.py`. That guarantees Streamlit uses the venv's Python.
+
+**App crashes on start with `Segmentation fault` (macOS/Linux) or exits silently**  
+This happens when TensorFlow is installed in the same environment, as it is in Anaconda's base env: `transformers` tries to load TensorFlow and crashes. `sd_local.py` sets `USE_TF=0` to prevent it. If you still see the crash, use a fresh venv as described above.
+
+**404 / `Repository Not Found` when downloading**  
+You're using the old `runwayml/stable-diffusion-v1-5` name. Use `stable-diffusion-v1-5/stable-diffusion-v1-5`.
+
+**Download is 40 GB+ / disk full**  
+You left out the `--include` filters. Delete the `sd15` folder and re-run the command exactly as shown.
 
 **Streamlit port already in use**  
 ```bash
 streamlit run sd_local.py --server.port 8502
 ```
+
+### Windows-specific
+
+**Device shows `CPU` even though I have an NVIDIA GPU**  
+You installed the CPU build of PyTorch. Reinstall the CUDA build:
+```powershell
+pip uninstall -y torch
+pip install torch --index-url https://download.pytorch.org/whl/cu126
+```
+If `torch.cuda.is_available()` is still `False`, update your NVIDIA driver and check that `nvidia-smi` works.
+
+**`OSError: [WinError 126]` or `DLL load failed` when importing torch**  
+Install the [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe), then open a new PowerShell window.
+
+**`CUDA out of memory`**  
+Use SD 1.5 at 512×512 and close other GPU-heavy apps such as games or browsers with many tabs. GPUs with 4 GB or less may only manage 512×512.
+
+**`hf` / `streamlit` is not recognized**  
+The venv isn't active: run `.\.venv\Scripts\Activate.ps1`. For Streamlit, `python -m streamlit run sd_local.py` also works.
+
+**`OSError: [Errno 2]` / path too long while installing**  
+Move the project to a short path such as `C:\labs\MNIST`, recreate the venv, and install again.
 
 ---
 
