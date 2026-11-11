@@ -10,6 +10,14 @@ Supported hardware:
 
 **Quick links:** [macOS / Linux setup](#setup--macos--linux) · [Windows setup](#setup--windows) · [Troubleshooting](#troubleshooting)
 
+### Example output
+
+<p align="center">
+  <img src="images/example-robot.png" alt="Colorful cartoon robot with a flower on its chest, generated locally with Stable Diffusion" width="384">
+</p>
+
+<p align="center"><em>Generated locally with this app at 512 × 512. No cloud service involved.</em></p>
+
 ---
 
 ## What is Stable Diffusion?
@@ -79,6 +87,7 @@ The **guidance scale** (CFG scale) controls how strictly the image follows your 
 ```
 sd/
 ├── sd_local.py          # Main Streamlit app
+├── images/              # Example outputs for this README
 ├── sd15/                # Stable Diffusion 1.5 model (downloaded separately)
 ├── sdxl/                # Stable Diffusion XL model (downloaded separately)
 └── README.md
